@@ -1,4 +1,4 @@
-use spatial_macro::spatial_component;
+use spatialos_macro::spatial_component;
 
 #[spatial_component(404)]
 struct Mass {

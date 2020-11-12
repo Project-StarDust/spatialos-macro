@@ -1,5 +1,5 @@
 [package]
-name = "spatial_macro"
+name = "spatialos-macro"
 version = "0.1.0"
 authors = ["Thomas Nicollet <thomas.nicollet@epitech.eu>"]
 edition = "2018"
