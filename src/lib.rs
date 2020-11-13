@@ -5,8 +5,8 @@ mod spatial_enum;
 mod spatial_type;
 mod utils;
 
-use crate::spatial_enum::generate_enum;
 use crate::spatial_component::generate_component;
+use crate::spatial_enum::generate_enum;
 use crate::spatial_type::generate_type;
 use proc_macro::TokenStream;
 
@@ -18,9 +18,9 @@ pub fn spatial_component(item: TokenStream) -> TokenStream {
     generate_component(item)
 }
 
-#[proc_macro_attribute]
-pub fn spatial_type(attr: TokenStream, item: TokenStream) -> TokenStream {
-    generate_type(attr, item)
+#[proc_macro_derive(SpatialType, attributes(field_id))]
+pub fn spatial_type(item: TokenStream) -> TokenStream {
+    generate_type(item)
 }
 
 #[proc_macro_attribute]
