@@ -1,18 +1,16 @@
 use proc_macro::TokenStream;
 use quote::ToTokens;
-use syn::{parse_macro_input, AttributeArgs, Ident, ItemStruct};
+use syn::{parse_macro_input, Attribute, Ident, ItemStruct};
 
-fn get_id(args: AttributeArgs) -> Option<u32> {
-    if let syn::NestedMeta::Lit(lit) = &args[0] {
-        if let syn::Lit::Int(lit_int) = lit {
-            if let Ok(base10_id) = lit_int.base10_parse::<u32>() {
-                Some(base10_id)
-            } else {
-                None
-            }
-        } else {
-            None
-        }
+fn get_id(attrs: &Vec<Attribute>) -> Option<u32> {
+    let attribute: syn::Lit = attrs
+        .iter()
+        .find(|attr| attr.path.is_ident("id"))
+        .map(|attr| attr.parse_args())?
+        .ok()?;
+
+    if let syn::Lit::Int(lit_int) = attribute {
+        lit_int.base10_parse::<u32>().ok()
     } else {
         None
     }
@@ -24,7 +22,7 @@ pub fn generate_component_data_deserialize() -> impl ToTokens {
             component_id: spatialos_sdk::sys_exports::worker::ComponentId,
             _: *mut core::ffi::c_void,
             mut source: spatialos_sdk::sys_exports::schema::ComponentData
-        ) -> Self {
+        ) -> Self::Data {
             assert_eq!(component_id, Self::ID);
             unimplemented!()
         }
@@ -36,7 +34,7 @@ pub fn generate_component_data_serialize() -> impl ToTokens {
         fn component_data_serialize(
             component_id: spatialos_sdk::sys_exports::worker::ComponentId,
             _: *mut core::ffi::c_void,
-            data: &mut Self,
+            data: &mut Self::Data,
         ) -> spatialos_sdk::sys_exports::schema::ComponentData {
             assert_eq!(component_id, Self::ID);
             unimplemented!()
@@ -98,7 +96,7 @@ pub fn generate_component_update_copy() -> impl ToTokens {
 
 pub fn generate_impl_component(struct_name: &Ident, id: u32) -> impl ToTokens {
     let update_struct_name = format_ident!("{}Update", struct_name);
-    
+    let data_struct_name = format_ident!("{}Data", struct_name);
     let component_data_deserialize = generate_component_data_deserialize();
     let component_data_serialize = generate_component_data_serialize();
     let component_update_deserialize = generate_component_update_deserialize();
@@ -110,6 +108,7 @@ pub fn generate_impl_component(struct_name: &Ident, id: u32) -> impl ToTokens {
         impl spatialos_sdk::Component for #struct_name {
             const ID: spatialos_sdk::sys_exports::worker::ComponentId = #id;
 
+            type Data = #data_struct_name;
             type Update = #update_struct_name;
 
             #component_data_deserialize
@@ -128,11 +127,12 @@ pub fn generate_impl_component(struct_name: &Ident, id: u32) -> impl ToTokens {
     }
 }
 
-fn generate_base_struct(struct_name: &Ident) -> impl ToTokens {
+fn generate_data_struct(struct_name: &Ident) -> impl ToTokens {
+    let data_struct_name = format_ident!("{}Data", struct_name);
     quote! {
         #[repr(C)]
         #[derive(Debug, Clone)]
-        pub struct #struct_name {
+        pub struct #data_struct_name {
 
         }
     }
@@ -149,26 +149,31 @@ fn generate_update_struct(struct_name: &Ident) -> impl ToTokens {
     }
 }
 
-
-pub fn generate_component(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let args = parse_macro_input!(attr as AttributeArgs);
+pub fn generate_component(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemStruct);
-    let result = if let Some(id) = get_id(args) {
+    let attrs = &input.attrs;
+    let result = if let Some(id) = get_id(attrs) {
         let struct_name = &input.ident;
 
         if let syn::Fields::Named(fields) = input.fields {
             let named_fields = &fields.named;
-            let base_struct = generate_base_struct(struct_name);
+            let data_struct = generate_data_struct(struct_name);
             let update_struct = generate_update_struct(struct_name);
             let impl_component = generate_impl_component(struct_name, id);
             for field in named_fields {
                 println!("{:?}", field.attrs);
             }
             quote! {
-                #base_struct
+                #[automatically_derived]
+                #[allow(unused_qualifications)]
+                #data_struct
 
+                #[automatically_derived]
+                #[allow(unused_qualifications)]
                 #update_struct
 
+                #[automatically_derived]
+                #[allow(unused_qualifications)]
                 #impl_component
             }
         } else {

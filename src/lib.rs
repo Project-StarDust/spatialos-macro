@@ -13,9 +13,9 @@ use proc_macro::TokenStream;
 #[macro_use]
 extern crate quote;
 
-#[proc_macro_attribute]
-pub fn spatial_component(attr: TokenStream, item: TokenStream) -> TokenStream {
-    generate_component(attr, item)
+#[proc_macro_derive(SpatialComponent, attributes(id, field_id))]
+pub fn spatial_component(item: TokenStream) -> TokenStream {
+    generate_component(item)
 }
 
 #[proc_macro_attribute]

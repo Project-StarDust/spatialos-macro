@@ -1,9 +1,12 @@
-use spatialos_macro::spatial_component;
+#[macro_use]
+extern crate spatialos_macro;
 
-#[spatial_component(404)]
+
+#[derive(SpatialComponent)]
+#[id(404)]
 struct Mass {
-    #[ID(1)] mass: f64,
-    #[ID(2)] thrust: f32,
+    #[field_id(1)] mass: f64,
+    #[field_id(2)] thrust: f32,
 }
 
 fn main() {}
