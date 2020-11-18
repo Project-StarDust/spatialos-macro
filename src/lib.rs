@@ -23,7 +23,7 @@ pub fn spatial_type(item: TokenStream) -> TokenStream {
     generate_type(item)
 }
 
-#[proc_macro_attribute]
-pub fn spatial_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
-    generate_enum(attr, item)
+#[proc_macro_derive(SpatialEnum)]
+pub fn spatial_enum(item: TokenStream) -> TokenStream {
+    generate_enum(item)
 }

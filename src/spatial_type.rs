@@ -1,11 +1,12 @@
+use std::convert::TryFrom;
+
 use proc_macro::TokenStream;
 use quote::ToTokens;
 use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Field, Ident, ItemStruct};
 
 use crate::utils::{
     get_constructor, get_copiers, get_data_deserializers, get_data_serializers, get_freeers,
-    get_update_deserializers, get_update_serializers, transform_non_primitive_data,
-    transform_non_primitive_update,
+    get_update_deserializers, get_update_serializers, SchemaSerialized, SpatialType,
 };
 
 fn generate_type_data_deserialize(fields: &Punctuated<Field, Comma>) -> impl ToTokens {
@@ -124,8 +125,8 @@ fn generate_data_struct(struct_name: &Ident, fields: &Punctuated<Field, Comma>) 
         .collect::<Vec<_>>();
     let types = fields
         .iter()
-        .map(|field| field.ty.clone())
-        .map(transform_non_primitive_data)
+        .filter_map(|field| SpatialType::try_from(&field.ty).ok())
+        .map(|ty| ty.get_data_type())
         .collect::<Vec<_>>();
     quote! {
         #[repr(C)]
@@ -144,8 +145,8 @@ fn generate_update_struct(struct_name: &Ident, fields: &Punctuated<Field, Comma>
         .collect::<Vec<_>>();
     let types = fields
         .iter()
-        .map(|field| field.ty.clone())
-        .map(transform_non_primitive_update)
+        .filter_map(|field| SpatialType::try_from(&field.ty).ok())
+        .map(|ty| ty.get_update_type())
         .collect::<Vec<_>>();
     quote! {
         #[repr(C)]

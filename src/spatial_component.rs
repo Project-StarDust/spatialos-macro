@@ -1,28 +1,10 @@
+use std::convert::TryFrom;
+
 use proc_macro::TokenStream;
 use quote::ToTokens;
-use syn::{
-    parse_macro_input, punctuated::Punctuated, token::Comma, Attribute, Field, Ident, ItemStruct,
-};
+use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Field, Ident, ItemStruct};
 
-use crate::utils::{
-    get_constructor, get_copiers, get_data_deserializers, get_data_serializers, get_freeers,
-    get_update_deserializers, get_update_serializers, transform_non_primitive_data,
-    transform_non_primitive_update,
-};
-
-fn get_id(attrs: &[Attribute]) -> Option<u32> {
-    let attribute: syn::Lit = attrs
-        .iter()
-        .find(|attr| attr.path.is_ident("id"))
-        .map(|attr| attr.parse_args())?
-        .ok()?;
-
-    if let syn::Lit::Int(lit_int) = attribute {
-        lit_int.base10_parse::<u32>().ok()
-    } else {
-        None
-    }
-}
+use crate::utils::{SchemaSerialized, SpatialType, get_constructor, get_copiers, get_data_deserializers, get_data_serializers, get_freeers, get_id, get_update_deserializers, get_update_serializers};
 
 fn generate_component_data_deserialize(fields: &Punctuated<Field, Comma>) -> impl ToTokens {
     let deserializers = get_data_deserializers(fields, &format_ident!("fields"));
@@ -164,8 +146,8 @@ fn generate_data_struct(struct_name: &Ident, fields: &Punctuated<Field, Comma>) 
         .collect::<Vec<_>>();
     let types = fields
         .iter()
-        .map(|field| field.ty.clone())
-        .map(transform_non_primitive_data)
+        .filter_map(|field| SpatialType::try_from(&field.ty).ok())
+        .map(|ty| ty.get_data_type())
         .collect::<Vec<_>>();
     quote! {
         #[repr(C)]
@@ -184,8 +166,8 @@ fn generate_update_struct(struct_name: &Ident, fields: &Punctuated<Field, Comma>
         .collect::<Vec<_>>();
     let types = fields
         .iter()
-        .map(|field| field.ty.clone())
-        .map(transform_non_primitive_update)
+        .filter_map(|field| SpatialType::try_from(&field.ty).ok())
+        .map(|ty| ty.get_update_type())
         .collect::<Vec<_>>();
     quote! {
         #[repr(C)]
