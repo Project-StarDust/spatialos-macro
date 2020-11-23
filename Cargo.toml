@@ -3,6 +3,11 @@ name = "spatialos-macro"
 version = "0.1.0"
 authors = ["Thomas Nicollet <thomas.nicollet@epitech.eu>"]
 edition = "2018"
+homepage = "https://github.com/Project-StarDust/spatialos-macro"
+repository = "https://github.com/Project-StarDust/spatialos-macro"
+description = "Procmacro crate used to expand SpatialOS component and types created with spatialos-codegen"
+license = "GPL-3.0-or-later"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -16,4 +21,6 @@ name = "component_macro"
 syn = {version = "1.0", features = ["full", "extra-traits"] }
 quote = "1.0"
 proc-macro2 = "1.0"
-spatialos-sdk = { git = "https://github.com/Project-StarDust/spatialos-sdk.git" }
+
+[dev-dependencies]
+spatialos-sdk = { git = "https://github.com/Project-StarDust/spatialos-sdk" }

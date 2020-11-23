@@ -8,6 +8,7 @@ mod composite;
 mod custom;
 mod primitive;
 
+#[derive(Debug)]
 pub enum Primitive {
     Bool,
     F64,
@@ -19,9 +20,10 @@ pub enum Primitive {
     String,
 }
 
+#[derive(Debug)]
 pub enum SpatialType {
-    PlainType(PlainType),
-    CompositeType(CompositeType),
+    PlainType(Box<PlainType>),
+    CompositeType(Box<CompositeType>),
 }
 
 impl TryFrom<&Type> for SpatialType {
@@ -29,8 +31,13 @@ impl TryFrom<&Type> for SpatialType {
 
     fn try_from(value: &Type) -> Result<Self, Self::Error> {
         CompositeType::try_from(value)
+            .map(Box::new)
             .map(Self::CompositeType)
-            .or(PlainType::try_from(value).map(Self::PlainType))
+            .or_else(|_| {
+                PlainType::try_from(value)
+                    .map(Box::new)
+                    .map(Self::PlainType)
+            })
     }
 }
 
@@ -40,12 +47,15 @@ impl SchemaSerialized for SpatialType {
         id: u32,
         ident: &proc_macro2::Ident,
         object_name: &proc_macro2::Ident,
-        data_name: &proc_macro2::Ident,
+        data_name: Option<&proc_macro2::Ident>,
+        is_ref: bool,
     ) -> Option<proc_macro2::TokenStream> {
         match self {
-            Self::PlainType(ty) => ty.generate_data_serializer(id, ident, object_name, data_name),
+            Self::PlainType(ty) => {
+                ty.generate_data_serializer(id, ident, object_name, data_name, is_ref)
+            }
             Self::CompositeType(ty) => {
-                ty.generate_data_serializer(id, ident, object_name, data_name)
+                ty.generate_data_serializer(id, ident, object_name, data_name, is_ref)
             }
         }
     }
@@ -53,12 +63,12 @@ impl SchemaSerialized for SpatialType {
     fn generate_data_deserializer(
         self,
         id: u32,
-        ident: &proc_macro2::Ident,
         object_name: &proc_macro2::Ident,
+        index: Option<&proc_macro2::Ident>,
     ) -> Option<proc_macro2::TokenStream> {
         match self {
-            Self::PlainType(ty) => ty.generate_data_deserializer(id, ident, object_name),
-            Self::CompositeType(ty) => ty.generate_data_deserializer(id, ident, object_name),
+            Self::PlainType(ty) => ty.generate_data_deserializer(id, object_name, index),
+            Self::CompositeType(ty) => ty.generate_data_deserializer(id, object_name, index),
         }
     }
 
@@ -67,12 +77,15 @@ impl SchemaSerialized for SpatialType {
         id: u32,
         ident: &proc_macro2::Ident,
         object_name: &proc_macro2::Ident,
-        data_name: &proc_macro2::Ident,
+        data_name: Option<&proc_macro2::Ident>,
+        is_ref: bool,
     ) -> Option<proc_macro2::TokenStream> {
         match self {
-            Self::PlainType(ty) => ty.generate_update_serializer(id, ident, object_name, data_name),
+            Self::PlainType(ty) => {
+                ty.generate_update_serializer(id, ident, object_name, data_name, is_ref)
+            }
             Self::CompositeType(ty) => {
-                ty.generate_update_serializer(id, ident, object_name, data_name)
+                ty.generate_update_serializer(id, ident, object_name, data_name, is_ref)
             }
         }
     }
@@ -80,12 +93,12 @@ impl SchemaSerialized for SpatialType {
     fn generate_update_deserializer(
         self,
         id: u32,
-        ident: &proc_macro2::Ident,
         object_name: &proc_macro2::Ident,
+        index: Option<&proc_macro2::Ident>,
     ) -> Option<proc_macro2::TokenStream> {
         match self {
-            Self::PlainType(ty) => ty.generate_update_deserializer(id, ident, object_name),
-            Self::CompositeType(ty) => ty.generate_update_deserializer(id, ident, object_name),
+            Self::PlainType(ty) => ty.generate_update_deserializer(id, object_name, index),
+            Self::CompositeType(ty) => ty.generate_update_deserializer(id, object_name, index),
         }
     }
 
@@ -127,9 +140,10 @@ impl SchemaSerialized for SpatialType {
     }
 }
 
+#[derive(Debug)]
 pub enum PlainType {
-    Primitive(Primitive),
-    SpatialType(Type),
+    Primitive(Box<Primitive>),
+    SpatialType(Box<Type>),
 }
 
 impl TryFrom<&Type> for PlainType {
@@ -137,8 +151,9 @@ impl TryFrom<&Type> for PlainType {
 
     fn try_from(value: &Type) -> Result<Self, Self::Error> {
         Primitive::try_from(value)
+            .map(Box::new)
             .map(Self::Primitive)
-            .or(Ok(Self::SpatialType(value.clone())))
+            .or_else(|_| Ok(Self::SpatialType(Box::new(value.clone()))))
     }
 }
 
@@ -148,23 +163,28 @@ impl SchemaSerialized for PlainType {
         id: u32,
         ident: &proc_macro2::Ident,
         object_name: &proc_macro2::Ident,
-        data_name: &proc_macro2::Ident,
+        data_name: Option<&proc_macro2::Ident>,
+        is_ref: bool,
     ) -> Option<proc_macro2::TokenStream> {
         match self {
-            Self::Primitive(ty) => ty.generate_data_serializer(id, ident, object_name, data_name),
-            Self::SpatialType(ty) => ty.generate_data_serializer(id, ident, object_name, data_name),
+            Self::Primitive(ty) => {
+                ty.generate_data_serializer(id, ident, object_name, data_name, is_ref)
+            }
+            Self::SpatialType(ty) => {
+                ty.generate_data_serializer(id, ident, object_name, data_name, is_ref)
+            }
         }
     }
 
     fn generate_data_deserializer(
         self,
         id: u32,
-        ident: &proc_macro2::Ident,
         object_name: &proc_macro2::Ident,
+        index: Option<&proc_macro2::Ident>,
     ) -> Option<proc_macro2::TokenStream> {
         match self {
-            Self::Primitive(ty) => ty.generate_data_deserializer(id, ident, object_name),
-            Self::SpatialType(ty) => ty.generate_data_deserializer(id, ident, object_name),
+            Self::Primitive(ty) => ty.generate_data_deserializer(id, object_name, index),
+            Self::SpatialType(ty) => ty.generate_data_deserializer(id, object_name, index),
         }
     }
 
@@ -173,12 +193,15 @@ impl SchemaSerialized for PlainType {
         id: u32,
         ident: &proc_macro2::Ident,
         object_name: &proc_macro2::Ident,
-        data_name: &proc_macro2::Ident,
+        data_name: Option<&proc_macro2::Ident>,
+        is_ref: bool,
     ) -> Option<proc_macro2::TokenStream> {
         match self {
-            Self::Primitive(ty) => ty.generate_update_serializer(id, ident, object_name, data_name),
+            Self::Primitive(ty) => {
+                ty.generate_update_serializer(id, ident, object_name, data_name, is_ref)
+            }
             Self::SpatialType(ty) => {
-                ty.generate_update_serializer(id, ident, object_name, data_name)
+                ty.generate_update_serializer(id, ident, object_name, data_name, is_ref)
             }
         }
     }
@@ -186,12 +209,12 @@ impl SchemaSerialized for PlainType {
     fn generate_update_deserializer(
         self,
         id: u32,
-        ident: &proc_macro2::Ident,
         object_name: &proc_macro2::Ident,
+        index: Option<&proc_macro2::Ident>,
     ) -> Option<proc_macro2::TokenStream> {
         match self {
-            Self::Primitive(ty) => ty.generate_update_deserializer(id, ident, object_name),
-            Self::SpatialType(ty) => ty.generate_update_deserializer(id, ident, object_name),
+            Self::Primitive(ty) => ty.generate_update_deserializer(id, object_name, index),
+            Self::SpatialType(ty) => ty.generate_update_deserializer(id, object_name, index),
         }
     }
 
@@ -233,7 +256,7 @@ impl SchemaSerialized for PlainType {
     }
 }
 
-#[allow(dead_code)]
+#[derive(Debug)]
 pub enum CompositeType {
     Vec(PlainType),
     HashMap(PlainType, PlainType),

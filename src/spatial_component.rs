@@ -4,7 +4,10 @@ use proc_macro::TokenStream;
 use quote::ToTokens;
 use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Field, Ident, ItemStruct};
 
-use crate::utils::{SchemaSerialized, SpatialType, get_constructor, get_copiers, get_data_deserializers, get_data_serializers, get_freeers, get_id, get_update_deserializers, get_update_serializers};
+use crate::utils::{
+    get_constructor, get_copiers, get_data_deserializers, get_data_serializers, get_freeers,
+    get_id, get_update_deserializers, get_update_serializers, SchemaSerialized, SpatialType,
+};
 
 fn generate_component_data_deserialize(fields: &Punctuated<Field, Comma>) -> impl ToTokens {
     let deserializers = get_data_deserializers(fields, &format_ident!("fields"));

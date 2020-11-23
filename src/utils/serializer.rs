@@ -16,7 +16,7 @@ pub fn get_data_serializers(
         .into_iter()
         .filter_map(|(ident, ty, id)| SpatialType::try_from(ty).ok().map(|ty| (ident, ty, id)))
         .filter_map(|(ident, ty, id)| {
-            ty.generate_data_serializer(id, ident, object_name, data_name)
+            ty.generate_data_serializer(id, ident, object_name, Some(data_name), false)
         })
         .collect()
 }
@@ -30,7 +30,7 @@ pub fn get_update_serializers(
         .into_iter()
         .filter_map(|(ident, ty, id)| SpatialType::try_from(ty).ok().map(|ty| (ident, ty, id)))
         .filter_map(|(ident, ty, id)| {
-            ty.generate_update_serializer(id, ident, object_name, data_name)
+            ty.generate_update_serializer(id, ident, object_name, Some(data_name), false)
         })
         .collect()
 }

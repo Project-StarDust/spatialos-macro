@@ -59,6 +59,7 @@ pub fn get_composite_type(ty: &Type) -> Option<&Type> {
                 match segment.ident.to_string().as_str() {
                     "Vec" => Some(ty),
                     "HashMap" => Some(ty),
+                    "Option" => Some(ty),
                     _ => None,
                 }
             } else {

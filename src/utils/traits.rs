@@ -7,14 +7,15 @@ pub trait SchemaSerialized {
         id: u32,
         ident: &Ident,
         object_name: &Ident,
-        data_name: &Ident,
+        data_name: Option<&Ident>,
+        is_ref: bool,
     ) -> Option<TokenStream>;
 
     fn generate_data_deserializer(
         self,
         id: u32,
-        ident: &Ident,
         object_name: &Ident,
+        index: Option<&Ident>,
     ) -> Option<TokenStream>;
 
     fn generate_update_serializer(
@@ -22,14 +23,15 @@ pub trait SchemaSerialized {
         id: u32,
         ident: &Ident,
         object_name: &Ident,
-        data_name: &Ident,
+        data_name: Option<&Ident>,
+        is_ref: bool,
     ) -> Option<TokenStream>;
 
     fn generate_update_deserializer(
         self,
         id: u32,
-        ident: &Ident,
         object_name: &Ident,
+        index: Option<&Ident>,
     ) -> Option<TokenStream>;
 
     fn generate_update_copier(

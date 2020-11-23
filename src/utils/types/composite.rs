@@ -3,6 +3,9 @@ use std::convert::TryFrom;
 use proc_macro2::TokenStream;
 use syn::{Ident, Type};
 
+const MAP_KEY_FIELD_ID: u32 = 1u32;
+const MAP_VALUE_FIELD_ID: u32 = 2u32;
+
 use crate::utils::{get_one_argument_type, get_two_argument_type, SchemaSerialized};
 
 use super::{CompositeType, PlainType};
@@ -44,8 +47,10 @@ impl SchemaSerialized for CompositeType {
         id: u32,
         ident: &Ident,
         object_name: &Ident,
-        data_name: &Ident,
+        data_name: Option<&Ident>,
+        _: bool,
     ) -> Option<TokenStream> {
+        let data_name = data_name?;
         match self {
             Self::Vec(PlainType::Primitive(primitive)) => {
                 let func = format_ident!("add_{}_list", primitive.get_name());
@@ -53,15 +58,58 @@ impl SchemaSerialized for CompositeType {
                     #object_name.#func(#id, &#data_name.#ident)
                 })
             }
-            _ => None,
+            Self::Vec(PlainType::SpatialType(ty)) => {
+                let value_ident = format_ident!("value");
+                let serializer =
+                    ty.generate_data_serializer(id, &value_ident, object_name, None, true)?;
+                Some(quote! {
+                    #data_name.#ident.iter_mut().for_each(|mut #value_ident| {
+                        #serializer
+                    })
+                })
+            }
+            Self::Option(ty) => {
+                let serializer = ty.generate_data_serializer(id, ident, object_name, None, true);
+                Some(quote! {
+                    if let Some(mut #ident) = #data_name.#ident.as_mut() {
+                        #serializer
+                    }
+                })
+            }
+            Self::HashMap(ty1, ty2) => {
+                let object_ident = format_ident!("object");
+                let key_ident = format_ident!("key");
+                let value_ident = format_ident!("value");
+                let serializer1 = ty1.generate_data_serializer(
+                    MAP_KEY_FIELD_ID,
+                    &key_ident,
+                    &object_ident,
+                    None,
+                    true,
+                )?;
+                let serializer2 = ty2.generate_data_serializer(
+                    MAP_VALUE_FIELD_ID,
+                    &value_ident,
+                    &object_ident,
+                    None,
+                    true,
+                )?;
+                Some(quote! {
+                    #data_name.#ident.iter_mut().for_each(|(mut #key_ident, mut #value_ident)| {
+                        let mut #object_ident = #object_name.add_object(#id);
+                        #serializer1;
+                        #serializer2;
+                    })
+                })
+            }
         }
     }
 
     fn generate_data_deserializer(
         self,
         id: u32,
-        _: &Ident,
         object_name: &Ident,
+        _: Option<&Ident>,
     ) -> Option<TokenStream> {
         match self {
             Self::Vec(PlainType::Primitive(primitive)) => {
@@ -70,22 +118,40 @@ impl SchemaSerialized for CompositeType {
                     #object_name.#func(#id)
                 })
             }
-            Self::HashMap(p1, p2) => {
-                /*let serializer1 =
-                    generate_primitive_deserializer_enum(p1, schema::MAP_KEY_FIELD_ID, object_name);
-                let serializer2 =
-                    generate_primitive_deserializer_enum(p2, schema::MAP_VALUE_FIELD_ID, object_name);
+            Self::Vec(PlainType::SpatialType(ty)) => {
+                let index_ident = format_ident!("idx");
+                let deserializer =
+                    ty.generate_data_deserializer(id, object_name, Some(&index_ident))?;
                 Some(quote! {
-                    let #ident = (0..#object_name.get_object_count(#id)).map(|i| {
-                        let object = #object_name.index_object(#id, i);
+                    (0..#object_name.get_object_count(#id)).map(|#index_ident| {
+                        #deserializer
+                    }).collect()
+                })
+            }
+            Self::Option(ty) => {
+                let deserializer = ty.generate_data_deserializer(id, object_name, None)?;
+                Some(quote! {
+                    if #object_name.get_object_count(#id) > 0 {
+                        Some(#deserializer)
+                    } else {
+                        None
+                    }
+                })
+            }
+            Self::HashMap(ty1, ty2) => {
+                let serializer1 =
+                    ty1.generate_data_deserializer(MAP_KEY_FIELD_ID, object_name, None)?;
+                let serializer2 =
+                    ty2.generate_data_deserializer(MAP_VALUE_FIELD_ID, object_name, None)?;
+                Some(quote! {
+                    (0..#object_name.get_object_count(#id)).map(|i| {
+                        let mut object = #object_name.index_object(#id, i);
                         let arg1 = #serializer1;
                         let arg2 = #serializer2;
                         (arg1, arg2)
                     }).collect()
-                })*/
-                None
+                })
             }
-            _ => None,
         }
     }
 
@@ -94,29 +160,57 @@ impl SchemaSerialized for CompositeType {
         id: u32,
         ident: &Ident,
         object_name: &Ident,
-        data_name: &Ident,
+        data_name: Option<&Ident>,
+        _: bool,
     ) -> Option<TokenStream> {
-        let tokens = match self {
+        let data_name = data_name?;
+        match self {
             Self::Vec(PlainType::Primitive(primitive)) => {
                 let func = format_ident!("add_{}_list", primitive.get_name());
                 Some(quote! {
-                    #object_name.#func(#id, #ident)
+                    if let Some(mut #ident) = #data_name.#ident.as_mut() {
+                        #object_name.#func(#id, #ident)
+                    }
+                })
+            }
+            Self::Vec(PlainType::SpatialType(ty)) => {
+                let value_ident = format_ident!("value");
+                let serializer =
+                    ty.generate_data_serializer(id, &value_ident, object_name, None, true)?;
+                Some(quote! {
+                    if let Some(mut #ident) = #data_name.#ident.as_mut() {
+                        #ident.iter_mut().for_each(|mut #value_ident| {
+                            #serializer
+                        })
+                    }
+                })
+            }
+            Self::Option(PlainType::Primitive(ty)) => {
+                let serializer =
+                    ty.generate_update_serializer(id, ident, object_name, None, true)?;
+                Some(quote! {
+                    if let Some(mut #ident) = #data_name.#ident.as_mut() {
+                        #serializer
+                    }
+                })
+            }
+            Self::Option(PlainType::SpatialType(ty)) => {
+                let serializer = ty.generate_data_serializer(id, ident, object_name, None, true)?;
+                Some(quote! {
+                    if let Some(mut #ident) = #data_name.#ident.as_mut() {
+                        #serializer
+                    }
                 })
             }
             _ => None,
-        }?;
-        Some(quote! {
-            if let Some(#ident) = &#data_name.#ident {
-                #tokens;
-            }
-        })
+        }
     }
 
     fn generate_update_deserializer(
         self,
         id: u32,
-        ident: &Ident,
         object_name: &Ident,
+        _: Option<&Ident>,
     ) -> Option<TokenStream> {
         match self {
             Self::Vec(PlainType::Primitive(primitive)) => {
@@ -125,7 +219,60 @@ impl SchemaSerialized for CompositeType {
                     #object_name.#func(#id)
                 })
             }
-            _ => None,
+            Self::Vec(PlainType::SpatialType(ty)) => {
+                let index_ident = format_ident!("idx");
+                let deserializer =
+                    ty.generate_data_deserializer(id, object_name, Some(&index_ident))?;
+                Some(quote! {
+                    if #object_name.get_object_count(#id) > 0 {
+                        Some((0..#object_name.get_object_count(#id)).map(|#index_ident| {
+                            #deserializer
+                        }).collect())
+                    } else {
+                        None
+                    }
+                })
+            }
+            Self::Option(PlainType::Primitive(ty)) => {
+                let deserializer = ty.generate_update_deserializer(id, object_name, None)?;
+                Some(quote! {
+                    if #object_name.get_object_count(#id) > 0 {
+                        Some(#deserializer)
+                    } else {
+                        None
+                    }
+                })
+            }
+            Self::Option(PlainType::SpatialType(ty)) => {
+                let deserializer = ty.generate_data_deserializer(id, object_name, None);
+                Some(quote! {
+                    if #object_name.get_object_count(#id) > 0 {
+                        Some(#deserializer)
+                    } else {
+                        None
+                    }
+                })
+            }
+            Self::HashMap(ty1, ty2) => {
+                let object_ident = format_ident!("object");
+                let index_ident = format_ident!("idx");
+                let deserializer1 =
+                    ty1.generate_data_deserializer(MAP_KEY_FIELD_ID, &object_ident, None)?;
+                let deserializer2 =
+                    ty2.generate_data_deserializer(MAP_VALUE_FIELD_ID, &object_ident, None)?;
+                Some(quote! {
+                    if #object_name.get_object_count(#id) > 0 {
+                        Some((0..#object_name.get_object_count(#id)).map(|#index_ident| {
+                            let mut object = #object_name.index_object(#id, #index_ident);
+                            let arg1 = #deserializer1;
+                            let arg2 = #deserializer2;
+                            (arg1, arg2)
+                        }).collect())
+                    } else {
+                        None
+                    }
+                })
+            }
         }
     }
 
@@ -156,7 +303,7 @@ impl SchemaSerialized for CompositeType {
                 let inner_type1 = ty1.get_data_type();
                 let inner_type2 = ty2.get_data_type();
                 quote! {
-                    HashMap<#inner_type1, #inner_type2>>
+                    HashMap<#inner_type1, #inner_type2>
                 }
             }
             Self::Option(ty) => {

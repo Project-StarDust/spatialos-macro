@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 use proc_macro2::TokenStream;
 use syn::{punctuated::Punctuated, token::Comma, Field, Ident};
 
-use super::{SchemaSerialized, SpatialType, get_ident_type_fields};
+use super::{get_ident_type_fields, SchemaSerialized, SpatialType};
 
 pub fn get_copiers(
     fields: &Punctuated<Field, Comma>,

@@ -78,7 +78,7 @@ fn generate_type_update_copy(fields: &Punctuated<Field, Comma>) -> impl ToTokens
     let copiers = get_copiers(fields, &format_ident!("new_data"), &format_ident!("data"));
     quote! {
         fn type_update_copy(user_data: *mut core::ffi::c_void, data: &Self::Update) -> Self::Update {
-            let new_data = data.clone();
+            let mut new_data = data.clone();
             #(#copiers;)*
             new_data
         }

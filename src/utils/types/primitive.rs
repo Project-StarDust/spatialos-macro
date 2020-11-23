@@ -36,25 +36,43 @@ impl SchemaSerialized for Primitive {
         id: u32,
         ident: &Ident,
         object_name: &Ident,
-        data_name: &Ident,
+        data_name: Option<&Ident>,
+        is_ref: bool,
     ) -> Option<TokenStream> {
+        let params = if let Some(data_ident) = data_name {
+            if is_ref {
+                quote! { (#id, *#data_ident.#ident) }
+            } else {
+                quote! { (#id, #data_ident.#ident) }
+            }
+        } else if is_ref {
+                quote! { (#id, *#ident) }
+        } else {
+            quote! { (#id, #ident) }
+        };
         match self {
-            Primitive::Bool => Some(quote! { #object_name.add_bool(#id, #data_name.#ident) }),
-            Primitive::F64 => Some(quote! { #object_name.add_double(#id, #data_name.#ident) }),
-            Primitive::F32 => Some(quote! { #object_name.add_float(#id, #data_name.#ident) }),
-            Primitive::U32 => Some(quote! { #object_name.add_uint32(#id, #data_name.#ident) }),
-            Primitive::U64 => Some(quote! { #object_name.add_uint64(#id, #data_name.#ident) }),
-            Primitive::I32 => Some(quote! { #object_name.add_int32(#id, #data_name.#ident) }),
-            Primitive::I64 => Some(quote! { #object_name.add_int64(#id, #data_name.#ident) }),
-            Primitive::String => Some(quote! { #object_name.add_string(#id, &#data_name.#ident) }),
+            Primitive::Bool => Some(quote! { #object_name.add_bool #params }),
+            Primitive::F64 => Some(quote! { #object_name.add_double #params }),
+            Primitive::F32 => Some(quote! { #object_name.add_float #params }),
+            Primitive::U32 => Some(quote! { #object_name.add_uint32 #params }),
+            Primitive::U64 => Some(quote! { #object_name.add_uint64 #params }),
+            Primitive::I32 => Some(quote! { #object_name.add_int32 #params }),
+            Primitive::I64 => Some(quote! { #object_name.add_int64 #params }),
+            Primitive::String => {
+                if let Some(data_ident) = data_name {
+                    Some(quote! { #object_name.add_string(#id, &#data_ident.#ident) })
+                } else {
+                    Some(quote! { #object_name.add_string(#id, &#ident) })
+                }
+            }
         }
     }
 
     fn generate_data_deserializer(
         self,
         id: u32,
-        _: &Ident,
         object_name: &Ident,
+        _: Option<&Ident>,
     ) -> Option<TokenStream> {
         match self {
             Primitive::Bool => Some(quote! { #object_name.get_bool(#id) }),
@@ -73,18 +91,19 @@ impl SchemaSerialized for Primitive {
         id: u32,
         ident: &Ident,
         object_name: &Ident,
-        data_name: &Ident,
+        data_name: Option<&Ident>,
+        is_ref: bool,
     ) -> Option<TokenStream> {
-        self.generate_data_serializer(id, ident, object_name, data_name)
+        self.generate_data_serializer(id, ident, object_name, data_name, is_ref)
     }
 
     fn generate_update_deserializer(
         self,
         id: u32,
-        ident: &Ident,
         object_name: &Ident,
+        index: Option<&Ident>,
     ) -> Option<TokenStream> {
-        self.generate_data_deserializer(id, ident, object_name)
+        self.generate_data_deserializer(id, object_name, index)
     }
 
     fn generate_update_copier(self, _: &Ident, _: &Ident, _: &Ident) -> Option<TokenStream> {

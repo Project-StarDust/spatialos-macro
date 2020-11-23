@@ -9,22 +9,35 @@ impl SchemaSerialized for Type {
         id: u32,
         ident: &Ident,
         object_name: &Ident,
-        data_name: &Ident,
+        data_name: Option<&Ident>,
+        _: bool,
     ) -> Option<TokenStream> {
-        Some(quote! {
-            <#self as spatialos_sdk::Type>::type_data_serialize(user_data, &mut #data_name.#ident, &mut #object_name.add_object(#id))
-        })
+        if let Some(data_name) = data_name {
+            Some(quote! {
+                <#self as spatialos_sdk::Type>::type_data_serialize(user_data, &mut #data_name.#ident, &mut #object_name.add_object(#id))
+            })
+        } else {
+            Some(quote! {
+                <#self as spatialos_sdk::Type>::type_data_serialize(user_data, &mut #ident, &mut #object_name.add_object(#id))
+            })
+        }
     }
 
     fn generate_data_deserializer(
         self,
         id: u32,
-        ident: &Ident,
         object_name: &Ident,
+        index: Option<&Ident>,
     ) -> Option<TokenStream> {
-        Some(quote! {
-            let #ident = <#self as spatialos_sdk::Type>::type_data_deserialize(user_data, &mut #object_name.get_object(#id))
-        })
+        if let Some(index) = index {
+            Some(quote! {
+                <#self as spatialos_sdk::Type>::type_data_deserialize(user_data, &mut #object_name.index_object(#id, #index))
+            })
+        } else {
+            Some(quote! {
+                <#self as spatialos_sdk::Type>::type_data_deserialize(user_data, &mut #object_name.get_object(#id))
+            })
+        }
     }
 
     fn generate_update_serializer(
@@ -32,31 +45,53 @@ impl SchemaSerialized for Type {
         id: u32,
         ident: &Ident,
         object_name: &Ident,
-        data_name: &Ident,
+        data_name: Option<&Ident>,
+        _: bool,
     ) -> Option<TokenStream> {
-        Some(quote! {
-            if let Some(mut #ident) = #data_name.#ident.as_mut() {
-                <#self as spatialos_sdk::Type>::type_update_serialize(user_data, &mut #ident, &mut #object_name.add_object(#id));
-            }
-        })
+        if let Some(data_name) = data_name {
+            Some(quote! {
+                if let Some(mut #ident) = #data_name.#ident.as_mut() {
+                    <#self as spatialos_sdk::Type>::type_update_serialize(user_data, &mut #ident, &mut #object_name.add_object(#id));
+                }
+            })
+        } else {
+            Some(quote! {
+                if let Some(mut #ident) = #ident.as_mut() {
+                    <#self as spatialos_sdk::Type>::type_update_serialize(user_data, &mut #ident, &mut #object_name.add_object(#id));
+                }
+            })
+        }
     }
 
     fn generate_update_deserializer(
         self,
         id: u32,
-        ident: &Ident,
         object_name: &Ident,
+        index: Option<&Ident>,
     ) -> Option<TokenStream> {
-        Some(quote! {
-            let #ident = if #object_name.get_object_count(#id) == 1 {
-                Some(<#self as spatialos_sdk::Type>::type_update_deserialize(
-                    user_data,
-                    &mut #object_name.get_object(#id),
-                ))
-            } else {
-                None
-            };
-        })
+        if let Some(index) = index {
+            Some(quote! {
+                if #object_name.get_object_count(#id) == 1 {
+                    Some(<#self as spatialos_sdk::Type>::type_update_deserialize(
+                        user_data,
+                        &mut #object_name.index_object(#id, #index),
+                    ))
+                } else {
+                    None
+                };
+            })
+        } else {
+            Some(quote! {
+                if #object_name.get_object_count(#id) == 1 {
+                    Some(<#self as spatialos_sdk::Type>::type_update_deserialize(
+                        user_data,
+                        &mut #object_name.get_object(#id),
+                    ))
+                } else {
+                    None
+                };
+            })
+        }
     }
 
     fn generate_update_copier(
@@ -90,6 +125,7 @@ impl SchemaSerialized for Type {
             Type::Path(path) => Type::Path(append_to_end_segment(path, "Update")),
             _ => self,
         };
-        syn::parse2::<Type>(quote! { Option<#ty> }).expect("Cannot parse update type of Custom type")
+        syn::parse2::<Type>(quote! { Option<#ty> })
+            .expect("Cannot parse update type of Custom type")
     }
 }
