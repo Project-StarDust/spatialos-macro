@@ -8,7 +8,7 @@ const MAP_VALUE_FIELD_ID: u32 = 2u32;
 
 use crate::utils::{get_one_argument_type, get_two_argument_type, SchemaSerialized};
 
-use super::{CompositeType, PlainType};
+use super::{CompositeType, PlainType, Primitive};
 
 impl TryFrom<&Type> for CompositeType {
     type Error = ();
@@ -52,6 +52,9 @@ impl SchemaSerialized for CompositeType {
     ) -> Option<TokenStream> {
         let data_name = data_name?;
         match self {
+            Self::Vec(PlainType::Primitive(Primitive::Char)) => Some(quote! {
+                #object_name.add_bytes(#id, &#data_name.#ident)
+            }),
             Self::Vec(PlainType::Primitive(primitive)) => {
                 let func = format_ident!("add_{}_list", primitive.get_name());
                 Some(quote! {
@@ -112,6 +115,9 @@ impl SchemaSerialized for CompositeType {
         _: Option<&Ident>,
     ) -> Option<TokenStream> {
         match self {
+            Self::Vec(PlainType::Primitive(Primitive::Char)) => Some(quote! {
+                #object_name.get_bytes(#id)
+            }),
             Self::Vec(PlainType::Primitive(primitive)) => {
                 let func = format_ident!("get_{}_list", primitive.get_name());
                 Some(quote! {
@@ -165,6 +171,11 @@ impl SchemaSerialized for CompositeType {
     ) -> Option<TokenStream> {
         let data_name = data_name?;
         match self {
+            Self::Vec(PlainType::Primitive(Primitive::Char)) => Some(quote! {
+                if let Some(mut #ident) = #data_name.#ident.as_mut() {
+                    #object_name.add_bytes(#id, #ident)
+                }
+            }),
             Self::Vec(PlainType::Primitive(primitive)) => {
                 let func = format_ident!("add_{}_list", primitive.get_name());
                 Some(quote! {
@@ -213,6 +224,13 @@ impl SchemaSerialized for CompositeType {
         _: Option<&Ident>,
     ) -> Option<TokenStream> {
         match self {
+            Self::Vec(PlainType::Primitive(Primitive::Char)) => Some(quote! {
+                if #object_name.get_bytes_count(#id) > 0 {
+                    Some(#object_name.get_bytes(#id))
+                } else {
+                    None
+                }
+            }),
             Self::Vec(PlainType::Primitive(primitive)) => {
                 let func = format_ident!("get_optional_{}_list", primitive.get_name());
                 Some(quote! {

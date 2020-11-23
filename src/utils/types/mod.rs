@@ -10,6 +10,7 @@ mod primitive;
 
 #[derive(Debug)]
 pub enum Primitive {
+    Char,
     Bool,
     F64,
     F32,
@@ -142,7 +143,7 @@ impl SchemaSerialized for SpatialType {
 
 #[derive(Debug)]
 pub enum PlainType {
-    Primitive(Box<Primitive>),
+    Primitive(Primitive),
     SpatialType(Box<Type>),
 }
 
@@ -151,7 +152,6 @@ impl TryFrom<&Type> for PlainType {
 
     fn try_from(value: &Type) -> Result<Self, Self::Error> {
         Primitive::try_from(value)
-            .map(Box::new)
             .map(Self::Primitive)
             .or_else(|_| Ok(Self::SpatialType(Box::new(value.clone()))))
     }

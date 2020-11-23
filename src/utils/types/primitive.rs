@@ -14,6 +14,7 @@ impl TryFrom<&Type> for Primitive {
         if let Type::Path(ident) = value {
             let ident = ident.path.get_ident().ok_or(())?;
             match ident.to_string().as_str() {
+                "u8" => Ok(Primitive::Char),
                 "bool" => Ok(Primitive::Bool),
                 "f64" => Ok(Primitive::F64),
                 "f32" => Ok(Primitive::F32),
@@ -65,6 +66,7 @@ impl SchemaSerialized for Primitive {
                     Some(quote! { #object_name.add_string(#id, &#ident) })
                 }
             }
+            _ => None,
         }
     }
 
@@ -83,6 +85,7 @@ impl SchemaSerialized for Primitive {
             Primitive::I32 => Some(quote! { #object_name.get_int32(#id) }),
             Primitive::I64 => Some(quote! { #object_name.get_int64(#id) }),
             Primitive::String => Some(quote! { #object_name.get_string(#id) }),
+            _ => None,
         }
     }
 
@@ -126,6 +129,7 @@ impl SchemaSerialized for Primitive {
 impl Primitive {
     pub fn get_name(&self) -> &str {
         match self {
+            Primitive::Char => "bytes",
             Primitive::Bool => "bool",
             Primitive::F64 => "double",
             Primitive::F32 => "float",
@@ -139,6 +143,7 @@ impl Primitive {
 
     pub fn get_type(&self) -> &str {
         match self {
+            Primitive::Char => "u8",
             Primitive::Bool => "bool",
             Primitive::F64 => "f64",
             Primitive::F32 => "f32",
