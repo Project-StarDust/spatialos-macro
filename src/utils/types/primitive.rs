@@ -46,7 +46,7 @@ impl SchemaSerialized for Primitive {
                 quote! { (#id, #data_ident.#ident) }
             }
         } else if is_ref {
-                quote! { (#id, *#ident) }
+            quote! { (#id, *#ident) }
         } else {
             quote! { (#id, #ident) }
         };
