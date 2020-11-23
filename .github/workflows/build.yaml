@@ -27,6 +27,11 @@ jobs:
           override: true
           components: rustfmt
 
+      - name: get-spatial-cli
+        uses: Project-StarDust/get-spatial-cli-action@v1.3
+        with:
+          refresh_token: ${{secrets.SPATIAL_REFRESH_TOKEN}}
+
       - name: Install clippy
         run: rustup component add clippy --toolchain=${{ matrix.version }} || cargo install --git https://github.com/rust-lang/rust-clippy/ --force clippy
 
@@ -72,6 +77,11 @@ jobs:
           default: true
           override: true
           components: rustfmt
+
+      - name: get-spatial-cli
+        uses: Project-StarDust/get-spatial-cli-action@v1.3
+        with:
+          refresh_token: ${{secrets.SPATIAL_REFRESH_TOKEN}}
 
       - name: Install clippy
         run: rustup component add clippy --toolchain=${{ matrix.version }} || cargo install --git https://github.com/rust-lang/rust-clippy/ --force clippy
@@ -121,6 +131,11 @@ jobs:
           override: true
           default: true
           components: rustfmt
+          
+      - name: get-spatial-cli
+        uses: Project-StarDust/get-spatial-cli-action@v1.3
+        with:
+          refresh_token: ${{secrets.SPATIAL_REFRESH_TOKEN}}
 
       - name: Install clippy
         run: rustup component add clippy --toolchain=${{ matrix.version }} || cargo install --git https://github.com/rust-lang/rust-clippy/ --force clippy
