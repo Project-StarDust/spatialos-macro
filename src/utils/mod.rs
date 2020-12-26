@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 use proc_macro2::TokenStream;
 
 use syn::{
@@ -22,34 +24,6 @@ pub use types::*;
 
 mod traits;
 pub use traits::*;
-
-pub fn get_field_id(attrs: &[Attribute]) -> Option<u32> {
-    let attribute: syn::Lit = attrs
-        .iter()
-        .find(|attr| attr.path.is_ident("field_id"))
-        .map(|attr| attr.parse_args())?
-        .ok()?;
-
-    if let syn::Lit::Int(lit_int) = attribute {
-        lit_int.base10_parse::<u32>().ok()
-    } else {
-        None
-    }
-}
-
-pub fn get_id(attrs: &[Attribute]) -> Option<u32> {
-    let attribute: syn::Lit = attrs
-        .iter()
-        .find(|attr| attr.path.is_ident("id"))
-        .map(|attr| attr.parse_args())?
-        .ok()?;
-
-    if let syn::Lit::Int(lit_int) = attribute {
-        lit_int.base10_parse::<u32>().ok()
-    } else {
-        None
-    }
-}
 
 pub fn get_composite_type(ty: &Type) -> Option<&Type> {
     if let Type::Path(path) = ty {
@@ -117,10 +91,14 @@ pub fn get_two_argument_type(ty: &Type) -> Option<(Type, Type)> {
     }
 }
 
-pub fn get_ident_type_fields(fields: &Punctuated<Field, Comma>) -> Vec<(&Ident, &Type)> {
+pub fn get_ident_type_fields(fields: &Punctuated<Field, Comma>) -> Vec<(&Ident, SpatialType)> {
     fields
         .iter()
-        .map(|field| (field.ident.as_ref(), &field.ty))
+        .filter_map(|field| {
+            SpatialType::try_from(field)
+                .ok()
+                .map(|ty| (field.ident.as_ref(), ty))
+        })
         .filter_map(|field| {
             let ident = field.0?;
             Some((ident, field.1))
@@ -128,10 +106,16 @@ pub fn get_ident_type_fields(fields: &Punctuated<Field, Comma>) -> Vec<(&Ident, 
         .collect()
 }
 
-pub fn get_ident_type_id_fields(fields: &Punctuated<Field, Comma>) -> Vec<(&Ident, &Type, u32)> {
+pub fn get_ident_type_id_fields(
+    fields: &Punctuated<Field, Comma>,
+) -> Vec<(&Ident, SpatialType, u32)> {
     fields
         .iter()
-        .map(|field| (field.ident.as_ref(), &field.ty, get_field_id(&field.attrs)))
+        .filter_map(|field| {
+            SpatialType::try_from(field)
+                .ok()
+                .map(|ty| (field.ident.as_ref(), ty, get_field_id(&field.attrs)))
+        })
         .filter_map(|field| {
             let ident = field.0?;
             Some((ident, field.1, field.2))
@@ -141,38 +125,4 @@ pub fn get_ident_type_id_fields(fields: &Punctuated<Field, Comma>) -> Vec<(&Iden
             Some((field.0, field.1, field_id))
         })
         .collect()
-}
-
-pub fn get_constructor<S: AsRef<str>>(fields: &Punctuated<Field, Comma>, name: S) -> TokenStream {
-    let ty = Type::Path(TypePath {
-        qself: None,
-        path: Path {
-            leading_colon: None,
-            segments: name
-                .as_ref()
-                .split("::")
-                .map(|seg| PathSegment {
-                    ident: format_ident!("{}", seg),
-                    arguments: syn::PathArguments::None,
-                })
-                .fold(Punctuated::new(), |mut acc, val| {
-                    acc.push(val);
-                    acc
-                }),
-        },
-    });
-    let idents = fields
-        .iter()
-        .filter_map(|field| field.ident.as_ref())
-        .collect::<Vec<_>>();
-    quote! {
-        #ty { #(#idents,)* }
-    }
-}
-
-pub fn append_to_end_segment<S: AsRef<str>>(mut ty_path: TypePath, suffix: S) -> TypePath {
-    if let Some(mut last) = ty_path.path.segments.last_mut() {
-        last.ident = format_ident!("{}{}", last.ident, suffix.as_ref())
-    };
-    ty_path
 }

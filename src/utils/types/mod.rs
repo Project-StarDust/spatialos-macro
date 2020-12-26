@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use syn::Type;
+use syn::{Field, Ident, Type};
 
 use super::SchemaSerialized;
 
@@ -27,15 +27,21 @@ pub enum SpatialType {
     CompositeType(Box<CompositeType>),
 }
 
-impl TryFrom<&Type> for SpatialType {
+impl TryFrom<&Field> for SpatialType {
     type Error = ();
 
-    fn try_from(value: &Type) -> Result<Self, Self::Error> {
+    fn try_from(value: &Field) -> Result<Self, Self::Error> {
+        let attrs = value
+            .attrs
+            .iter()
+            .find(|attr| attr.path.is_ident("spatial_type"))
+            .map(|attr| attr.parse_args::<syn::Ident>());
+        println!("{:?}", attrs);
         CompositeType::try_from(value)
             .map(Box::new)
             .map(Self::CompositeType)
             .or_else(|_| {
-                PlainType::try_from(value)
+                PlainType::try_from(&value.ty)
                     .map(Box::new)
                     .map(Self::PlainType)
             })
@@ -145,6 +151,7 @@ impl SchemaSerialized for SpatialType {
 pub enum PlainType {
     Primitive(Primitive),
     SpatialType(Box<Type>),
+    //Enum(Box<Ident>),
 }
 
 impl TryFrom<&Type> for PlainType {

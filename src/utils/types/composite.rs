@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 
 use proc_macro2::TokenStream;
-use syn::{Ident, Type};
+use syn::{Field, Ident, Type};
 
 const MAP_KEY_FIELD_ID: u32 = 1u32;
 const MAP_VALUE_FIELD_ID: u32 = 2u32;
@@ -10,26 +10,26 @@ use crate::utils::{get_one_argument_type, get_two_argument_type, SchemaSerialize
 
 use super::{CompositeType, PlainType, Primitive};
 
-impl TryFrom<&Type> for CompositeType {
+impl TryFrom<&Field> for CompositeType {
     type Error = ();
 
-    fn try_from(value: &Type) -> Result<Self, Self::Error> {
-        if let Type::Path(type_path) = value {
+    fn try_from(value: &Field) -> Result<Self, Self::Error> {
+        if let Type::Path(type_path) = &value.ty {
             let segment = type_path.path.segments.last().ok_or(())?;
             match segment.ident.to_string().as_str() {
                 "Vec" => {
-                    let arg = get_one_argument_type(value).ok_or(())?;
+                    let arg = get_one_argument_type(&value.ty).ok_or(())?;
                     let plain_type = PlainType::try_from(&arg)?;
                     Ok(CompositeType::Vec(plain_type))
                 }
                 "HashMap" => {
-                    let (arg1, arg2) = get_two_argument_type(value).ok_or(())?;
+                    let (arg1, arg2) = get_two_argument_type(&value.ty).ok_or(())?;
                     let plain_type1 = PlainType::try_from(&arg1)?;
                     let plain_type2 = PlainType::try_from(&arg2)?;
                     Ok(CompositeType::HashMap(plain_type1, plain_type2))
                 }
                 "Option" => {
-                    let arg = get_one_argument_type(value).ok_or(())?;
+                    let arg = get_one_argument_type(&value.ty).ok_or(())?;
                     let plain_type = PlainType::try_from(&arg)?;
                     Ok(CompositeType::Option(plain_type))
                 }
