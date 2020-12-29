@@ -1,5 +1,8 @@
 extern crate proc_macro;
 
+#[macro_use]
+extern crate lazy_static;
+
 mod ast;
 mod spatial_component;
 mod spatial_enum;

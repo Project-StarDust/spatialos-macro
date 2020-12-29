@@ -1,6 +1,6 @@
 pub mod r#enum;
-pub mod r#struct;
 pub mod field;
+pub mod r#struct;
 pub mod r#type;
 
 fn get_field_id(attrs: &[Attribute]) -> Option<u32> {
@@ -58,7 +58,49 @@ fn extract_attribute<T: Parse>(attrs: &[Attribute], name: &str) -> Option<T> {
         .ok()
 }
 
-pub use r#struct::StructAST;
+pub fn unpack_one_arg(ty: &Type) -> Option<&Type> {
+    match ty {
+        Type::Path(path) => {
+            let last = path.path.segments.last()?;
+            match &last.arguments {
+                PathArguments::AngleBracketed(args) => {
+                    args.args.iter().next().and_then(|opt| match opt {
+                        GenericArgument::Type(ty) => Some(ty),
+                        _ => None,
+                    })
+                }
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
+pub fn unpack_two_arg(ty: &Type) -> Option<(&Type, &Type)> {
+    match ty {
+        Type::Path(path) => {
+            let last = path.path.segments.last()?;
+            match &last.arguments {
+                PathArguments::AngleBracketed(args) => {
+                    let mut iter = args.args.iter();
+                    let arg1 = iter.next().and_then(|opt| match opt {
+                        GenericArgument::Type(ty) => Some(ty),
+                        _ => None,
+                    })?;
+                    let arg2 = iter.next().and_then(|opt| match opt {
+                        GenericArgument::Type(ty) => Some(ty),
+                        _ => None,
+                    })?;
+                    Some((arg1, arg2))
+                }
+                _ => None,
+            }
+        }
+        _ => None,
+    } 
+}
+
 pub use r#enum::EnumAST;
+pub use r#struct::StructAST;
 pub use r#type::SpatialType;
-use syn::{Attribute, TypePath, parse::Parse};
+use syn::{Attribute, GenericArgument, PathArguments, Type, TypePath, parse::Parse};
