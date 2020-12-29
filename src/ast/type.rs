@@ -156,7 +156,7 @@ impl SpatialType {
     pub fn get_data_type(&self) -> Type {
         match self {
             Self::Type(ty) => match ty.clone() {
-                Type::Path(path) => Type::Path(append_to_end_segment(path, "Data")),
+                Type::Path(_) => syn::parse2::<Type>(quote! { <#ty as spatialos_sdk::Type>::Data }).unwrap(),
                 _ => ty.clone(),
             },
             Self::List(spatial_type) => {
@@ -179,7 +179,7 @@ impl SpatialType {
     pub fn get_optionless_update_type(&self) -> Type {
         match self {
             Self::Type(ty) => match ty.clone() {
-                Type::Path(path) => Type::Path(append_to_end_segment(path, "Update")),
+                Type::Path(_) => syn::parse2::<Type>(quote! { <#ty as spatialos_sdk::Type>::Update }).unwrap(),
                 _ => ty.clone(),
             },
             Self::List(spatial_type) => {
