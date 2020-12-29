@@ -1,6 +1,6 @@
 [package]
 name = "spatialos-macro"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Thomas Nicollet <thomas.nicollet@epitech.eu>"]
 edition = "2018"
 homepage = "https://github.com/Project-StarDust/spatialos-macro"
@@ -25,7 +25,4 @@ regex = "1"
 lazy_static = "1.4.0"
 
 [dev-dependencies]
-spatialos-sdk = "0.1.2"
-
-[patch.crates-io]
-spatialos-sys = { path = '../spatialos-sys' }
+spatialos-sdk = "0.1.3"

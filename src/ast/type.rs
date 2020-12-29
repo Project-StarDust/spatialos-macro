@@ -5,7 +5,7 @@ use syn::{Field, Ident, Type};
 const MAP_KEY_FIELD_ID: u32 = 1u32;
 const MAP_VALUE_FIELD_ID: u32 = 2u32;
 
-use super::{append_to_end_segment, get_spatial_type, unpack_one_arg, unpack_two_arg};
+use super::{get_spatial_type, unpack_one_arg, unpack_two_arg};
 
 lazy_static! {
     static ref LST_RE: Regex = Regex::new(r"list<(.*)>").unwrap();

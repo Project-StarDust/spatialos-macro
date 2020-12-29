@@ -43,13 +43,6 @@ fn get_spatial_type(attrs: &[Attribute]) -> Option<String> {
     }
 }
 
-pub fn append_to_end_segment<S: AsRef<str>>(mut ty_path: TypePath, suffix: S) -> TypePath {
-    if let Some(mut last) = ty_path.path.segments.last_mut() {
-        last.ident = format_ident!("{}{}", last.ident, suffix.as_ref())
-    };
-    ty_path
-}
-
 fn extract_attribute<T: Parse>(attrs: &[Attribute], name: &str) -> Option<T> {
     attrs
         .iter()
@@ -103,4 +96,4 @@ pub fn unpack_two_arg(ty: &Type) -> Option<(&Type, &Type)> {
 pub use r#enum::EnumAST;
 pub use r#struct::StructAST;
 pub use r#type::SpatialType;
-use syn::{Attribute, GenericArgument, PathArguments, Type, TypePath, parse::Parse};
+use syn::{Attribute, GenericArgument, PathArguments, Type, parse::Parse};
