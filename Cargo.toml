@@ -1,6 +1,6 @@
 [package]
 name = "spatialos-macro"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Thomas Nicollet <thomas.nicollet@epitech.eu>"]
 edition = "2018"
 homepage = "https://github.com/Project-StarDust/spatialos-macro"

@@ -95,7 +95,7 @@ impl StructAST<'_> {
             quote! {
                 fn type_data_deserialize(
                     user_data: *mut core::ffi::c_void,
-                    #source: &mut spatialos_sdk::sys_exports::schema::Object,
+                    #source: &mut spatialos::schema::Object,
                 ) -> Self::Data {
                     #deserializers
                     #constructor
@@ -111,7 +111,7 @@ impl StructAST<'_> {
                 fn type_data_serialize(
                     user_data: *mut core::ffi::c_void,
                     #data: &mut Self::Data,
-                    #target: &mut spatialos_sdk::sys_exports::schema::Object,
+                    #target: &mut spatialos::schema::Object,
                 ) {
                     #serializers
                 }
@@ -125,7 +125,7 @@ impl StructAST<'_> {
             quote! {
                 fn type_update_deserialize(
                     user_data: *mut core::ffi::c_void,
-                    #source: &mut spatialos_sdk::sys_exports::schema::Object,
+                    #source: &mut spatialos::schema::Object,
                 ) -> Self::Update {
                     #deserializers
                     #constructor
@@ -141,7 +141,7 @@ impl StructAST<'_> {
                 fn type_update_serialize(
                     user_data: *mut core::ffi::c_void,
                     #data: &mut Self::Update,
-                    #target: &mut spatialos_sdk::sys_exports::schema::Object,
+                    #target: &mut spatialos::schema::Object,
                 ) {
                     #serializers
                 }
@@ -205,9 +205,9 @@ impl StructAST<'_> {
             let constructor = self.get_data_constructor();
             quote! {
                 fn component_data_deserialize(
-                    component_id: spatialos_sdk::sys_exports::worker::ComponentId,
+                    component_id: spatialos::worker::ComponentId,
                     user_data: *mut core::ffi::c_void,
-                    mut source: spatialos_sdk::sys_exports::schema::ComponentData
+                    mut source: spatialos::schema::ComponentData
                 ) -> Self::Data {
                     let mut #fields = source.get_fields();
                     #deserializers
@@ -222,11 +222,11 @@ impl StructAST<'_> {
             let serializers = self.get_data_serializers(&data, &fields);
             quote! {
                 fn component_data_serialize(
-                    component_id: spatialos_sdk::sys_exports::worker::ComponentId,
+                    component_id: spatialos::worker::ComponentId,
                     user_data: *mut core::ffi::c_void,
                     #data: &mut Self::Data,
-                ) -> spatialos_sdk::sys_exports::schema::ComponentData {
-                    let mut component_data = spatialos_sdk::sys_exports::schema::ComponentData::new();
+                ) -> spatialos::schema::ComponentData {
+                    let mut component_data = spatialos::schema::ComponentData::new();
                     let mut #fields = component_data.get_fields();
                     #serializers
                     component_data
@@ -240,9 +240,9 @@ impl StructAST<'_> {
             let constructor = self.get_update_constructor();
             quote! {
                 fn component_update_deserialize(
-                    component_id: spatialos_sdk::sys_exports::worker::ComponentId,
+                    component_id: spatialos::worker::ComponentId,
                     user_data: *mut core::ffi::c_void,
-                    mut source: spatialos_sdk::sys_exports::schema::ComponentUpdate,
+                    mut source: spatialos::schema::ComponentUpdate,
                 ) -> Self::Update {
                     let mut #fields = source.get_fields();
                     #deserializers
@@ -257,11 +257,11 @@ impl StructAST<'_> {
             let serializers = self.get_update_serializers(&data, &fields);
             quote! {
                 fn component_update_serialize(
-                    component_id: spatialos_sdk::sys_exports::worker::ComponentId,
+                    component_id: spatialos::worker::ComponentId,
                     user_data: *mut core::ffi::c_void,
                     #data: &mut Self::Update,
-                ) -> spatialos_sdk::sys_exports::schema::ComponentUpdate {
-                    let mut new_update = spatialos_sdk::sys_exports::schema::ComponentUpdate::new();
+                ) -> spatialos::schema::ComponentUpdate {
+                    let mut new_update = spatialos::schema::ComponentUpdate::new();
                     let mut #fields = new_update.get_fields();
                     #serializers
                     new_update
@@ -274,7 +274,7 @@ impl StructAST<'_> {
             let freeers = quote! {};
             quote! {
                 fn component_update_free(
-                    component_id: spatialos_sdk::sys_exports::worker::ComponentId,
+                    component_id: spatialos::worker::ComponentId,
                     user_data: *mut core::ffi::c_void,
                     #data: Self::Update
                 ) {
@@ -289,7 +289,7 @@ impl StructAST<'_> {
             let copiers = quote! {};
             quote! {
                 fn component_update_copy(
-                    component_id: spatialos_sdk::sys_exports::worker::ComponentId,
+                    component_id: spatialos::worker::ComponentId,
                     user_data: *mut core::ffi::c_void,
                     #data: &Self::Update
                 ) -> Self::Update {
